@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
 import { Plus, Search, Pencil, Trash2, Stethoscope } from "lucide-react";
 import { useResource } from "../hooks/useResource";
+import { usePageTitle } from "../hooks/usePageTitle";
 import { colaboradorService } from "../api/colaboradorService";
+import { useToast } from "../context/ToastContext";
 import PageHeader from "../components/ui/PageHeader";
 import Button from "../components/ui/Button";
 import Alert from "../components/ui/Alert";
@@ -25,11 +27,12 @@ const EMPTY_FORM = {
 };
 
 export default function ColaboradoresPage() {
+  usePageTitle("Colaboradores");
+  const toast = useToast();
   const { items, loading, error, setError, crear, actualizar, eliminar } =
     useResource(colaboradorService);
 
   const [search, setSearch] = useState("");
-  const [success, setSuccess] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -78,10 +81,10 @@ export default function ColaboradoresPage() {
       if (editingId) {
         const { cedula, ...rest } = payload;
         await actualizar(editingId, rest);
-        setSuccess("Colaborador actualizado correctamente.");
+        toast.success("Colaborador actualizado correctamente.");
       } else {
         await crear(payload);
-        setSuccess("Colaborador registrado correctamente.");
+        toast.success("Colaborador registrado correctamente.");
       }
       setModalOpen(false);
     } catch (err) {
@@ -95,7 +98,7 @@ export default function ColaboradoresPage() {
     if (!window.confirm(`¿Eliminar a ${nombreCompleto(c)}?`)) return;
     try {
       await eliminar(c.id);
-      setSuccess("Colaborador eliminado.");
+      toast.success("Colaborador eliminado.");
     } catch (err) {
       setError(err.detail || "No se pudo eliminar el colaborador.");
     }
@@ -114,7 +117,6 @@ export default function ColaboradoresPage() {
       />
 
       <Alert message={error} onClose={() => setError("")} />
-      <Alert type="success" message={success} onClose={() => setSuccess("")} />
 
       <Card>
         <div className="card-header">
@@ -272,3 +274,4 @@ export default function ColaboradoresPage() {
     </div>
   );
 }
+

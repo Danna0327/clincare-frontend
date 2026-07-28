@@ -11,8 +11,10 @@ import {
 } from "lucide-react";
 import { useCitas } from "../hooks/useCitas";
 import { useResource } from "../hooks/useResource";
+import { usePageTitle } from "../hooks/usePageTitle";
 import { pacienteService } from "../api/pacienteService";
 import { colaboradorService } from "../api/colaboradorService";
+import { useToast } from "../context/ToastContext";
 import PageHeader from "../components/ui/PageHeader";
 import Button from "../components/ui/Button";
 import Alert from "../components/ui/Alert";
@@ -24,6 +26,8 @@ import { EmptyState, LoadingRow } from "../components/ui/Feedback";
 import { formatFecha, formatHora, nombreCompleto } from "../utils/format";
 
 export default function CitasPage() {
+  usePageTitle("Citas");
+  const toast = useToast();
   const {
     items: citas,
     loading,
@@ -43,7 +47,6 @@ export default function CitasPage() {
   const { items: colaboradores } = useResource(colaboradorService);
 
   const [filtroEstado, setFiltroEstado] = useState("TODOS");
-  const [success, setSuccess] = useState("");
   const [cedulaBuscada, setCedulaBuscada] = useState("");
 
   const [editando, setEditando] = useState(null);
@@ -74,7 +77,7 @@ export default function CitasPage() {
     if (!window.confirm(msg)) return;
     try {
       await cambiarEstado(cita.id, estado);
-      setSuccess(`Cita actualizada a ${estado.toLowerCase()}.`);
+      toast.success(`Cita actualizada a ${estado.toLowerCase()}.`);
     } catch (err) {
       setError(err.detail || "No se pudo actualizar el estado de la cita.");
     }
@@ -98,7 +101,7 @@ export default function CitasPage() {
     setSaving(true);
     try {
       await actualizar(editando, form);
-      setSuccess("Cita actualizada correctamente.");
+      toast.success("Cita actualizada correctamente.");
       setEditando(null);
     } catch (err) {
       setFormError(err.detail || "No se pudo actualizar la cita.");
@@ -111,7 +114,7 @@ export default function CitasPage() {
     if (!window.confirm("¿Eliminar esta cita del sistema?")) return;
     try {
       await eliminar(cita.id);
-      setSuccess("Cita eliminada.");
+      toast.success("Cita eliminada.");
     } catch (err) {
       setError(err.detail || "No se pudo eliminar la cita.");
     }
@@ -140,7 +143,6 @@ export default function CitasPage() {
       />
 
       <Alert message={error} onClose={() => setError("")} />
-      <Alert type="success" message={success} onClose={() => setSuccess("")} />
 
       <Card className="card-padded mb-16">
         <div className="flex-row" style={{ marginBottom: 10 }}>
@@ -322,3 +324,4 @@ export default function CitasPage() {
     </div>
   );
 }
+
