@@ -1,7 +1,10 @@
 import { useMemo, useState } from "react";
 import { Plus, Search, Pencil, Trash2, Users } from "lucide-react";
 import { useResource } from "../hooks/useResource";
+import { usePagination } from "../hooks/usePagination";
+import { usePageTitle } from "../hooks/usePageTitle";
 import { pacienteService } from "../api/pacienteService";
+import { useToast } from "../context/ToastContext";
 import PageHeader from "../components/ui/PageHeader";
 import Button from "../components/ui/Button";
 import Alert from "../components/ui/Alert";
@@ -10,6 +13,7 @@ import { Card } from "../components/ui/Card";
 import { Field, Input, Select } from "../components/ui/FormControls";
 import { ActivoBadge } from "../components/ui/Badge";
 import Avatar from "../components/ui/Avatar";
+import Pagination from "../components/ui/Pagination";
 import { EmptyState, LoadingRow } from "../components/ui/Feedback";
 import { nombreCompleto } from "../utils/format";
 
@@ -25,11 +29,12 @@ const EMPTY_FORM = {
 };
 
 export default function PacientesPage() {
+  usePageTitle("Pacientes");
+  const toast = useToast();
   const { items, loading, error, setError, crear, actualizar, eliminar } =
     useResource(pacienteService);
 
   const [search, setSearch] = useState("");
-  const [success, setSuccess] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -43,6 +48,8 @@ export default function PacientesPage() {
       (p) => nombreCompleto(p).toLowerCase().includes(q) || p.cedula.toLowerCase().includes(q)
     );
   }, [items, search]);
+
+  const { page, setPage, totalPages, pageItems, totalItems, pageSize } = usePagination(filtrados, 8);
 
   function abrirCrear() {
     setEditingId(null);
@@ -75,10 +82,10 @@ export default function PacientesPage() {
       if (editingId) {
         const { cedula, ...payload } = form;
         await actualizar(editingId, payload);
-        setSuccess("Paciente actualizado correctamente.");
+        toast.success("Paciente actualizado correctamente.");
       } else {
         await crear(form);
-        setSuccess("Paciente registrado correctamente.");
+        toast.success("Paciente registrado correctamente.");
       }
       setModalOpen(false);
     } catch (err) {
@@ -92,7 +99,7 @@ export default function PacientesPage() {
     if (!window.confirm(`¿Eliminar a ${nombreCompleto(p)}?`)) return;
     try {
       await eliminar(p.id);
-      setSuccess("Paciente eliminado.");
+      toast.success("Paciente eliminado.");
     } catch (err) {
       setError(err.detail || "No se pudo eliminar el paciente.");
     }
@@ -111,7 +118,6 @@ export default function PacientesPage() {
       />
 
       <Alert message={error} onClose={() => setError("")} />
-      <Alert type="success" message={success} onClose={() => setSuccess("")} />
 
       <Card>
         <div className="card-header">
@@ -141,7 +147,7 @@ export default function PacientesPage() {
             <tbody>
               {loading && <LoadingRow colSpan={6} />}
               {!loading &&
-                filtrados.map((p) => (
+                pageItems.map((p) => (
                   <tr key={p.id}>
                     <td>
                       <div className="flex-row">
@@ -176,6 +182,13 @@ export default function PacientesPage() {
             <EmptyState icon={Users} title="No se encontraron pacientes" />
           )}
         </div>
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          onChange={setPage}
+          totalItems={totalItems}
+          pageSize={pageSize}
+        />
       </Card>
 
       {modalOpen && (
@@ -258,3 +271,4 @@ export default function PacientesPage() {
     </div>
   );
 }
+
