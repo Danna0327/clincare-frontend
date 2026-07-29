@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CalendarPlus } from "lucide-react";
 import { useResource } from "../hooks/useResource";
+import { usePageTitle } from "../hooks/usePageTitle";
 import { citaService } from "../api/citaService";
 import { pacienteService } from "../api/pacienteService";
 import { colaboradorService } from "../api/colaboradorService";
@@ -13,6 +14,7 @@ import { Field, Input, Select, Textarea } from "../components/ui/FormControls";
 import { nombreCompleto } from "../utils/format";
 
 export default function NuevaCitaPage() {
+  usePageTitle("Nueva cita");
   const navigate = useNavigate();
   const { items: pacientesAll, loading: loadingP } = useResource(pacienteService);
   const { items: colaboradoresAll, loading: loadingC } = useResource(colaboradorService);
@@ -126,8 +128,18 @@ export default function NuevaCitaPage() {
                   value={form.motivo}
                   onChange={(e) => setForm({ ...form, motivo: e.target.value })}
                   minLength={5}
+                  maxLength={255}
                   required
                 />
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: form.motivo.length < 5 ? "var(--accent-red)" : "var(--text-muted)",
+                    alignSelf: "flex-end",
+                  }}
+                >
+                  {form.motivo.length}/255 caracteres (mínimo 5)
+                </span>
               </Field>
 
               <div className="full flex-row" style={{ marginTop: 6 }}>
