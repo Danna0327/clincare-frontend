@@ -24,3 +24,23 @@ export function LoadingRow({ colSpan }) {
     </tr>
   );
 }
+
+/**
+ * Filas "esqueleto": placeholders animados mientras cargan datos de tabla.
+ * Alternativa más visual al LoadingRow con spinner + texto.
+ */
+export function SkeletonRows({ columns, rows = 4 }) {
+  return (
+    <>
+      {Array.from({ length: rows }, (_, i) => (
+        <tr key={i}>
+          {Array.from({ length: columns }, (_, j) => (
+            <td key={j}>
+              <div className="skeleton-bar" />
+            </td>
+          ))}
+        </tr>
+      ))}
+    </>
+  );
+}
