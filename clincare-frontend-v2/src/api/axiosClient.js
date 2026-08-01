@@ -9,6 +9,7 @@ const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api/v1";
  */
 const axiosClient = axios.create({
   baseURL: API_URL,
+  timeout: 10000, // 10s: evita que la app se quede colgada si el backend no responde
   headers: {
     "Content-Type": "application/json",
   },
@@ -24,7 +25,21 @@ axiosClient.interceptors.request.use((config) => {
 
 axiosClient.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const config = error.config || {};
+
+    // Reintenta una sola vez si fue un error de red (backend caído momentáneamente,
+    // arrancando, o un problema transitorio de conexión) antes de rendirse.
+    const esErrorDeRed = !error.response;
+    if (esErrorDeRed && !config._retried) {
+      config._retried = true;
+      try {
+        return await axiosClient(config);
+      } catch (retryError) {
+        error = retryError;
+      }
+    }
+
     const detail =
       error.response?.data?.detail ||
       error.response?.data?.message ||
