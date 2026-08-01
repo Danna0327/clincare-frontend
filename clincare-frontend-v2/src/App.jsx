@@ -8,6 +8,7 @@ import PacientesPage from "./pages/PacientesPage";
 import ColaboradoresPage from "./pages/ColaboradoresPage";
 import CitasPage from "./pages/CitasPage";
 import NuevaCitaPage from "./pages/NuevaCitaPage";
+import NotFoundPage from "./pages/NotFoundPage";
 
 export default function App() {
   return (
@@ -30,7 +31,7 @@ export default function App() {
           <Route path="citas/nueva" element={<NuevaCitaPage />} />
         </Route>
 
-        <Route path="*" element={<DashboardPage />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </AuthProvider>
   );
