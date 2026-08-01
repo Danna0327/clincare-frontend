@@ -1,5 +1,6 @@
-import { Bell } from "lucide-react";
+import { Bell, Moon, Sun } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { useTheme } from "../../hooks/useTheme";
 
 function saludo() {
   const h = new Date().getHours();
@@ -10,6 +11,7 @@ function saludo() {
 
 export default function Topbar() {
   const { user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <header
@@ -35,9 +37,15 @@ export default function Topbar() {
         </div>
       </div>
 
-      <button className="btn btn-ghost btn-icon" aria-label="Notificaciones">
-        <Bell size={19} />
-      </button>
+      <div className="flex-row">
+        <button className="btn btn-ghost btn-icon" onClick={toggleTheme} aria-label="Cambiar tema">
+          {theme === "light" ? <Moon size={19} /> : <Sun size={19} />}
+        </button>
+        <button className="btn btn-ghost btn-icon" aria-label="Notificaciones">
+          <Bell size={19} />
+        </button>
+      </div>
     </header>
   );
 }
+

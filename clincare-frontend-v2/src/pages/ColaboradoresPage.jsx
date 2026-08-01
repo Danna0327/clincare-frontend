@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
-import { Plus, Search, Pencil, Trash2, Stethoscope } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Stethoscope, Download } from "lucide-react";
 import { useResource } from "../hooks/useResource";
+import { usePagination } from "../hooks/usePagination";
 import { usePageTitle } from "../hooks/usePageTitle";
+import { exportToCsv } from "../utils/exportCsv";
 import { colaboradorService } from "../api/colaboradorService";
 import { useToast } from "../context/ToastContext";
 import PageHeader from "../components/ui/PageHeader";
@@ -12,6 +14,8 @@ import { Card } from "../components/ui/Card";
 import { Field, Input, Select } from "../components/ui/FormControls";
 import { ActivoBadge } from "../components/ui/Badge";
 import Avatar from "../components/ui/Avatar";
+import Pagination from "../components/ui/Pagination";
+import ConfirmDialog from "../components/ui/ConfirmDialog";
 import { EmptyState, LoadingRow } from "../components/ui/Feedback";
 import { nombreCompleto } from "../utils/format";
 
@@ -33,6 +37,7 @@ export default function ColaboradoresPage() {
     useResource(colaboradorService);
 
   const [search, setSearch] = useState("");
+  const [filtroRol, setFiltroRol] = useState("TODOS");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -41,11 +46,34 @@ export default function ColaboradoresPage() {
 
   const filtrados = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return items;
-    return items.filter(
+    let lista = items;
+    if (filtroRol !== "TODOS") {
+      lista = lista.filter((c) => c.rol === filtroRol);
+    }
+    if (!q) return lista;
+    return lista.filter(
       (c) => nombreCompleto(c).toLowerCase().includes(q) || c.cedula.toLowerCase().includes(q)
     );
-  }, [items, search]);
+  }, [items, search, filtroRol]);
+
+  const { page, setPage, totalPages, pageItems, totalItems, pageSize } = usePagination(filtrados, 8);
+
+  function handleExportar() {
+    exportToCsv(
+      "colaboradores.csv",
+      ["Cédula", "Nombres", "Apellidos", "Rol", "Especialidad", "Correo", "Teléfono", "Estado"],
+      filtrados.map((c) => [
+        c.cedula,
+        c.nombres,
+        c.apellidos,
+        c.rol === "MEDICO" ? "Médico" : "Administrativo",
+        c.especialidad || "",
+        c.correo,
+        c.telefono || "",
+        c.activo ? "Activo" : "Inactivo",
+      ])
+    );
+  }
 
   function abrirCrear() {
     setEditingId(null);
@@ -94,8 +122,11 @@ export default function ColaboradoresPage() {
     }
   }
 
-  async function handleEliminar(c) {
-    if (!window.confirm(`¿Eliminar a ${nombreCompleto(c)}?`)) return;
+  const [confirmTarget, setConfirmTarget] = useState(null);
+
+  async function handleEliminar() {
+    const c = confirmTarget;
+    setConfirmTarget(null);
     try {
       await eliminar(c.id);
       toast.success("Colaborador eliminado.");
@@ -110,9 +141,14 @@ export default function ColaboradoresPage() {
         title="Gestión de colaboradores"
         subtitle="Administra el personal médico y administrativo."
         action={
-          <Button icon={Plus} onClick={abrirCrear}>
-            Nuevo colaborador
-          </Button>
+          <div className="flex-row">
+            <Button variant="secondary" icon={Download} onClick={handleExportar}>
+              Exportar CSV
+            </Button>
+            <Button icon={Plus} onClick={abrirCrear}>
+              Nuevo colaborador
+            </Button>
+          </div>
         }
       />
 
@@ -121,13 +157,24 @@ export default function ColaboradoresPage() {
       <Card>
         <div className="card-header">
           <h2>Directorio ({filtrados.length})</h2>
-          <div className="input-with-icon" style={{ width: 260 }}>
-            <Search size={16} />
-            <Input
-              placeholder="Buscar por nombre o cédula..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+          <div className="flex-row">
+            <Select
+              value={filtroRol}
+              onChange={(e) => setFiltroRol(e.target.value)}
+              style={{ width: 170 }}
+            >
+              <option value="TODOS">Todos los roles</option>
+              <option value="MEDICO">Médicos</option>
+              <option value="ADMINISTRATIVO">Administrativos</option>
+            </Select>
+            <div className="input-with-icon" style={{ width: 240 }}>
+              <Search size={16} />
+              <Input
+                placeholder="Buscar por nombre o cédula..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
           </div>
         </div>
 
@@ -146,7 +193,7 @@ export default function ColaboradoresPage() {
             <tbody>
               {loading && <LoadingRow colSpan={6} />}
               {!loading &&
-                filtrados.map((c) => (
+                pageItems.map((c) => (
                   <tr key={c.id}>
                     <td>
                       <div className="flex-row">
@@ -174,7 +221,7 @@ export default function ColaboradoresPage() {
                         </button>
                         <button
                           className="btn btn-danger-ghost btn-icon"
-                          onClick={() => handleEliminar(c)}
+                          onClick={() => setConfirmTarget(c)}
                         >
                           <Trash2 size={16} />
                         </button>
@@ -188,6 +235,13 @@ export default function ColaboradoresPage() {
             <EmptyState icon={Stethoscope} title="No se encontraron colaboradores" />
           )}
         </div>
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          onChange={setPage}
+          totalItems={totalItems}
+          pageSize={pageSize}
+        />
       </Card>
 
       {modalOpen && (
@@ -271,7 +325,15 @@ export default function ColaboradoresPage() {
           </form>
         </Modal>
       )}
+
+      {confirmTarget && (
+        <ConfirmDialog
+          title="Eliminar colaborador"
+          message={`¿Seguro que quieres eliminar a ${nombreCompleto(confirmTarget)}? Esta acción no se puede deshacer.`}
+          onConfirm={handleEliminar}
+          onCancel={() => setConfirmTarget(null)}
+        />
+      )}
     </div>
   );
 }
-

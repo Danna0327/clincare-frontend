@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
-import { Plus, Search, Pencil, Trash2, Users } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Users, Download } from "lucide-react";
 import { useResource } from "../hooks/useResource";
 import { usePagination } from "../hooks/usePagination";
 import { usePageTitle } from "../hooks/usePageTitle";
+import { exportToCsv } from "../utils/exportCsv";
 import { pacienteService } from "../api/pacienteService";
 import { useToast } from "../context/ToastContext";
 import PageHeader from "../components/ui/PageHeader";
@@ -14,6 +15,7 @@ import { Field, Input, Select } from "../components/ui/FormControls";
 import { ActivoBadge } from "../components/ui/Badge";
 import Avatar from "../components/ui/Avatar";
 import Pagination from "../components/ui/Pagination";
+import ConfirmDialog from "../components/ui/ConfirmDialog";
 import { EmptyState, LoadingRow } from "../components/ui/Feedback";
 import { nombreCompleto } from "../utils/format";
 
@@ -50,6 +52,22 @@ export default function PacientesPage() {
   }, [items, search]);
 
   const { page, setPage, totalPages, pageItems, totalItems, pageSize } = usePagination(filtrados, 8);
+
+  function handleExportar() {
+    exportToCsv(
+      "pacientes.csv",
+      ["Cédula", "Nombres", "Apellidos", "Teléfono", "Correo", "Dirección", "Estado"],
+      filtrados.map((p) => [
+        p.cedula,
+        p.nombres,
+        p.apellidos,
+        p.telefono,
+        p.correo,
+        p.direccion || "",
+        p.activo ? "Activo" : "Inactivo",
+      ])
+    );
+  }
 
   function abrirCrear() {
     setEditingId(null);
@@ -95,8 +113,11 @@ export default function PacientesPage() {
     }
   }
 
-  async function handleEliminar(p) {
-    if (!window.confirm(`¿Eliminar a ${nombreCompleto(p)}?`)) return;
+  const [confirmTarget, setConfirmTarget] = useState(null);
+
+  async function handleEliminar() {
+    const p = confirmTarget;
+    setConfirmTarget(null);
     try {
       await eliminar(p.id);
       toast.success("Paciente eliminado.");
@@ -111,9 +132,14 @@ export default function PacientesPage() {
         title="Gestión de pacientes"
         subtitle="Registro y administración de la información de los pacientes."
         action={
-          <Button icon={Plus} onClick={abrirCrear}>
-            Nuevo paciente
-          </Button>
+          <div className="flex-row">
+            <Button variant="secondary" icon={Download} onClick={handleExportar}>
+              Exportar CSV
+            </Button>
+            <Button icon={Plus} onClick={abrirCrear}>
+              Nuevo paciente
+            </Button>
+          </div>
         }
       />
 
@@ -168,7 +194,7 @@ export default function PacientesPage() {
                         </button>
                         <button
                           className="btn btn-danger-ghost btn-icon"
-                          onClick={() => handleEliminar(p)}
+                          onClick={() => setConfirmTarget(p)}
                         >
                           <Trash2 size={16} />
                         </button>
@@ -267,6 +293,15 @@ export default function PacientesPage() {
             </div>
           </form>
         </Modal>
+      )}
+
+      {confirmTarget && (
+        <ConfirmDialog
+          title="Eliminar paciente"
+          message={`¿Seguro que quieres eliminar a ${nombreCompleto(confirmTarget)}? Esta acción no se puede deshacer.`}
+          onConfirm={handleEliminar}
+          onCancel={() => setConfirmTarget(null)}
+        />
       )}
     </div>
   );
