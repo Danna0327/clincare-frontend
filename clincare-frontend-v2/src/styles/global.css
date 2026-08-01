@@ -34,6 +34,26 @@
   --sidebar-width: 264px;
 }
 
+/* Tema oscuro: se activa agregando data-theme="dark" al <html> (ver useTheme hook) */
+[data-theme="dark"] {
+  --bg-app: #0f1420;
+  --bg-card: #171d2c;
+  --bg-soft: #1c2333;
+
+  --text-primary: #edf0f5;
+  --text-secondary: #aeb6c4;
+  --text-muted: #7480a0;
+
+  --border: #2a3244;
+  --border-strong: #384258;
+
+  --primary-50: #1b2540;
+}
+
+[data-theme="dark"] body {
+  background: var(--bg-app);
+}
+
 * {
   box-sizing: border-box;
 }
